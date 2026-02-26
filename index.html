@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <title>Pro Multi Image Resize Tool</title>
@@ -8,124 +8,110 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
 <style>
-* { box-sizing: border-box; }
-
-body {
-    margin:0;
-    font-family: 'Segoe UI', sans-serif;
-    background: linear-gradient(135deg,#0f172a,#1e293b);
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    min-height:100vh;
-    color:white;
-    transition:0.3s;
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family:'Segoe UI',sans-serif;
+  background:linear-gradient(135deg,#0f172a,#1e293b);
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  min-height:100vh;
+  color:white;
 }
-
-.light {
-    background: #f1f5f9;
-    color:#111;
+.card{
+  width:700px;
+  background:#1e293b;
+  padding:35px;
+  border-radius:20px;
+  box-shadow:0 25px 60px rgba(0,0,0,0.4);
 }
-
-.card {
-    width:600px;
-    background:#1e293b;
-    padding:35px;
-    border-radius:20px;
-    box-shadow:0 25px 60px rgba(0,0,0,0.4);
-    transition:0.3s;
+h2{text-align:center;margin-bottom:20px}
+.drop-zone{
+  position: relative;
+  border:2px dashed #475569;
+  padding:35px;
+  text-align:center;
+  border-radius:15px;
+  margin-bottom:10px;
+  cursor:pointer;
+  transition:.3s;
 }
-
-.light .card { background:white; }
-
-h2 { text-align:center; margin-bottom:25px; }
-
-.drop-zone {
-    border:2px dashed #475569;
-    padding:35px;
-    text-align:center;
-    border-radius:15px;
-    margin-bottom:20px;
-    cursor:pointer;
-    transition:0.3s;
+.drop-zone:hover{
+  border-color:#ef4444;
+  background:rgba(239,68,68,.08);
 }
-
-.drop-zone:hover {
-    border-color:#ef4444;
-    background:rgba(239,68,68,0.08);
+.drop-zone input[type="file"]{
+  position:absolute;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  opacity:0;
+  cursor:pointer;
 }
-
-.row { display:flex; gap:10px; }
-
-input, select {
-    width:100%;
-    padding:12px;
-    border-radius:10px;
-    border:1px solid #475569;
-    background:#0f172a;
-    color:white;
-    outline:none;
+.row{display:flex;gap:10px;margin-bottom:10px}
+input,select{
+  width:100%;
+  padding:12px;
+  border-radius:10px;
+  border:1px solid #475569;
+  background:#0f172a;
+  color:white;
+  outline:none;
 }
-
-.light input, .light select {
-    background:white;
-    color:#111;
+button{
+  width:100%;
+  padding:14px;
+  border:none;
+  border-radius:12px;
+  background:#ef4444;
+  color:white;
+  font-weight:600;
+  cursor:pointer;
+  transition:.3s;
+  margin-top:15px;
 }
-
-button {
-    width:100%;
-    padding:14px;
-    border:none;
-    border-radius:12px;
-    background:#ef4444;
-    color:white;
-    font-weight:600;
-    cursor:pointer;
-    transition:0.3s;
-    margin-top:15px;
+button:hover{
+  background:#dc2626;
+  transform:translateY(-2px);
+  box-shadow:0 10px 25px rgba(239,68,68,.4);
 }
-
-button:hover {
-    background:#dc2626;
-    transform:translateY(-2px);
-    box-shadow:0 10px 25px rgba(239,68,68,0.4);
+.progress-container{
+  margin-top:20px;
+  height:25px;
+  background:#0f172a;
+  border-radius:10px;
+  overflow:hidden;
+  display:none;
+  position:relative;
 }
-
-.progress-container {
-    margin-top:20px;
-    height:10px;
-    background:#0f172a;
-    border-radius:10px;
-    overflow:hidden;
-    display:none;
+.progress-bar{
+  height:100%;
+  width:0%;
+  background:#ef4444;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:13px;
+  font-weight:bold;
 }
-
-.progress-bar {
-    height:100%;
-    width:0%;
-    background:#ef4444;
+.preview{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  margin-top:15px;
+  max-height:160px;
+  overflow:auto;
 }
-
-.preview {
-    display:flex;
-    flex-wrap:wrap;
-    gap:10px;
-    margin-top:15px;
-    max-height:150px;
-    overflow:auto;
+.preview img{
+  width:70px;
+  border-radius:8px;
 }
-
-.preview img {
-    width:70px;
-    border-radius:8px;
-}
-
-.toggle {
-    text-align:right;
-    font-size:13px;
-    cursor:pointer;
-    margin-bottom:10px;
-    opacity:0.7;
+.small-text{
+  font-size:13px;
+  margin-top:5px;
+  opacity:.8;
 }
 </style>
 </head>
@@ -133,36 +119,58 @@ button:hover {
 <body>
 
 <div class="card">
-<div class="toggle" onclick="toggleTheme()">Toggle Dark/Light</div>
 
 <h2>Pro Multi Image Resize Tool</h2>
 
 <div class="drop-zone" id="dropZone">
-Drag & Drop ZIP Here<br>or Click to Upload
-<input type="file" id="zipUpload" accept=".zip,image/*" multiple hidden>
+  Drag & Drop ZIP or Images Here<br>or Click to Upload
+  <input type="file" id="fileInput" accept=".zip,image/*" multiple>
 </div>
+
+<div id="fileName" class="small-text"></div>
 
 <div class="row">
-<input type="number" id="width" placeholder="Width (px)">
-<input type="number" id="height" placeholder="Height (px)">
+  <input type="number" id="width" placeholder="Width (px)">
+  <input type="number" id="height" placeholder="Height (px)">
 </div>
-
-<label><input type="checkbox" id="ratio"> Maintain Aspect Ratio</label>
 
 <label>Compression Quality</label>
 <input type="range" id="quality" min="0.1" max="1" step="0.1" value="0.8">
+<div class="small-text" id="qualityText">Quality: 80%</div>
 
 <label>Convert Format</label>
 <select id="format">
-<option value="image/jpeg">JPG</option>
-<option value="image/png">PNG</option>
-<option value="image/webp">WEBP</option>
+  <option value="image/jpeg">JPG</option>
+  <option value="image/png">PNG</option>
+  <option value="image/webp">WEBP</option>
 </select>
 
-<button onclick="processZip()">Resize & Download ZIP</button>
+<label>Resize Mode</label>
+<select id="resizeMode">
+  <option value="fit">Fit (no crop)</option>
+  <option value="fill">Fill (crop)</option>
+  <option value="only-larger">Only if larger</option>
+</select>
+
+<label>Resize by Percentage</label>
+<select id="scale">
+  <option value="1">100%</option>
+  <option value="0.75">75%</option>
+  <option value="0.5">50%</option>
+  <option value="0.25">25%</option>
+</select>
+
+<label>Background</label>
+<select id="background">
+  <option value="#ffffff">White</option>
+  <option value="#000000">Black</option>
+  <option value="transparent">Transparent</option>
+</select>
+
+<button id="resizeBtn">Resize & Download</button>
 
 <div class="progress-container" id="progressContainer">
-<div class="progress-bar" id="progressBar"></div>
+  <div class="progress-bar" id="progressBar">0%</div>
 </div>
 
 <div class="preview" id="preview"></div>
@@ -170,181 +178,157 @@ Drag & Drop ZIP Here<br>or Click to Upload
 </div>
 
 <script>
-let selectedFiles = [];
-const dropZone = document.getElementById('dropZone');
-const fileInput = document.getElementById('zipUpload');
-const preview = document.getElementById('preview');
-const progressBar = document.getElementById('progressBar');
-const progressContainer = document.getElementById('progressContainer');
-const qualitySlider = document.getElementById('quality');
+let selectedFiles=[];
+const dropZone=document.getElementById('dropZone');
+const fileInput=document.getElementById('fileInput');
+const preview=document.getElementById('preview');
+const progressBar=document.getElementById('progressBar');
+const progressContainer=document.getElementById('progressContainer');
+const qualitySlider=document.getElementById('quality');
+const qualityText=document.getElementById('qualityText');
+const resizeBtn=document.getElementById('resizeBtn');
+const fileNameDiv=document.getElementById('fileName');
 
-// Trego % të quality
-const qualityLabel = document.createElement("div");
-qualityLabel.style.fontSize = "13px";
-qualityLabel.style.marginBottom = "10px";
-qualityLabel.innerHTML = "Quality: 80%";
-qualitySlider.parentNode.insertBefore(qualityLabel, qualitySlider.nextSibling);
-
-qualitySlider.addEventListener("input", () => {
-    qualityLabel.innerHTML = "Quality: " + Math.round(qualitySlider.value * 100) + "%";
+qualitySlider.addEventListener("input",()=>{
+  qualityText.innerHTML="Quality: "+Math.round(qualitySlider.value*100)+"%";
 });
 
-dropZone.onclick = () => fileInput.click();
+// Drag & Drop + Click fix
+fileInput.addEventListener("change", e => handleFiles(e.target.files));
+dropZone.addEventListener("dragover", e => e.preventDefault());
+dropZone.addEventListener("drop", e => {
+  e.preventDefault();
+  handleFiles(e.dataTransfer.files);
+});
 
-fileInput.onchange = (e) => {
-    handleFiles(e.target.files);
-};
-
-dropZone.ondragover = (e) => e.preventDefault();
-
-dropZone.ondrop = (e) => {
-    e.preventDefault();
-    handleFiles(e.dataTransfer.files);
-};
-
-function handleFiles(files) {
-    selectedFiles = [];
-    preview.innerHTML = "";
-
-    for (let file of files) {
-        selectedFiles.push(file);
-    }
+// Funksioni për të ruajtur file-et dhe shfaq emrin e tyre
+function handleFiles(files){
+  selectedFiles=[];
+  preview.innerHTML="";
+  let names=[];
+  for(let file of files){
+    selectedFiles.push(file);
+    names.push(file.name);
+  }
+  fileNameDiv.innerHTML = "Uploaded: " + names.join(", ");
 }
 
-async function processZip() {
-    if (!selectedFiles.length) {
-        alert("Upload images or ZIP first.");
-        return;
-    }
+// Funksioni kryesor për resize + download
+resizeBtn.addEventListener("click", ()=>processFiles());
 
-    const widthInput = document.getElementById('width').value;
-    const heightInput = document.getElementById('height').value;
-    const keepRatio = document.getElementById('ratio').checked;
-    const quality = qualitySlider.value;
-    const format = document.getElementById('format').value;
+async function processFiles(){
+  if(!selectedFiles.length){alert("Upload images or ZIP first.");return;}
+  resizeBtn.disabled=true;
 
-    const newZip = new JSZip();
-    progressContainer.style.display = "block";
+  const widthInput=document.getElementById('width').value;
+  const heightInput=document.getElementById('height').value;
+  const quality=qualitySlider.value;
+  const format=document.getElementById('format').value;
+  const mode=document.getElementById('resizeMode').value;
+  const scale=parseFloat(document.getElementById('scale').value);
+  const bg=document.getElementById('background').value;
 
-    let totalImages = 0;
-    let imageBlobs = [];
+  const newZip=new JSZip();
+  let imageList=[];
 
-    // Kontrollo nëse është ZIP
-    if (selectedFiles.length === 1 && selectedFiles[0].name.endsWith(".zip")) {
-        const zip = new JSZip();
-        const contents = await zip.loadAsync(selectedFiles[0]);
+  progressContainer.style.display="block";
 
-        contents.forEach((_, zipEntry) => {
-            if (!zipEntry.dir && /\.(jpg|jpeg|png|webp)$/i.test(zipEntry.name)) {
-                totalImages++;
-                imageBlobs.push(
-                    zipEntry.async("blob").then(blob => ({
-                        blob,
-                        name: zipEntry.name
-                    }))
-                );
-            }
-        });
-
-        imageBlobs = await Promise.all(imageBlobs);
-
-    } else {
-        for (let file of selectedFiles) {
-            if (file.type.startsWith("image/")) {
-                totalImages++;
-                imageBlobs.push({
-                    blob: file,
-                    name: file.name
-                });
-            }
-        }
-    }
-
-    let count = 0;
-
-    for (let item of imageBlobs) {
-        await resizeImage(item.blob, item.name);
-    }
-
-    async function resizeImage(blob, name) {
-    return new Promise(resolve => {
-
-        const img = new Image();
-        const reader = new FileReader();
-
-        reader.onload = e => img.src = e.target.result;
-        reader.readAsDataURL(blob);
-
-        img.onload = function () {
-
-            const targetWidth = parseInt(widthInput);
-            const targetHeight = parseInt(heightInput);
-
-            let canvasWidth = targetWidth || img.width;
-            let canvasHeight = targetHeight || img.height;
-
-            // Ruaj proporcionin
-            const ratio = Math.min(
-                canvasWidth / img.width,
-                canvasHeight / img.height
-            );
-
-            const newWidth = img.width * ratio;
-            const newHeight = img.height * ratio;
-
-            const canvas = document.createElement('canvas');
-            canvas.width = canvasWidth;
-            canvas.height = canvasHeight;
-
-            const ctx = canvas.getContext('2d');
-
-            // BACKGROUND I BARDHË
-            ctx.fillStyle = "#ffffff";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            // Qendro foton në mes
-            const x = (canvasWidth - newWidth) / 2;
-            const y = (canvasHeight - newHeight) / 2;
-
-            ctx.drawImage(img, x, y, newWidth, newHeight);
-
-            canvas.toBlob(function (resizedBlob) {
-
-                const extension = format.split('/')[1];
-                const newName = "resized_" + name.split('.')[0] + "." + extension;
-
-                if (totalImages === 1) {
-                    saveAs(resizedBlob, newName);
-                } else {
-                    newZip.file(newName, resizedBlob);
-                }
-
-                const previewImg = document.createElement('img');
-                previewImg.src = URL.createObjectURL(resizedBlob);
-                preview.appendChild(previewImg);
-
-                count++;
-                const percent = Math.round((count / totalImages) * 100);
-                progressBar.style.width = percent + "%";
-                progressBar.innerHTML = percent + "%";
-
-                resolve();
-
-            }, format, quality);
-        };
+  // Handle ZIP
+  if(selectedFiles.length===1 && selectedFiles[0].name.endsWith(".zip")){
+    const zip=new JSZip();
+    const contents=await zip.loadAsync(selectedFiles[0]);
+    const promises=[];
+    contents.forEach((_,zipEntry)=>{
+      if(!zipEntry.dir && /\.(jpg|jpeg|png|webp)$/i.test(zipEntry.name)){
+        promises.push(zipEntry.async("blob").then(blob=>{
+          imageList.push({blob,name:zipEntry.name});
+        }));
+      }
     });
-}
-
-    if (totalImages > 1) {
-        const content = await newZip.generateAsync({ type: "blob" });
-        saveAs(content, "resized_images.zip");
+    await Promise.all(promises);
+  } else {
+    for(let file of selectedFiles){
+      if(file.type.startsWith("image/")){
+        imageList.push({blob:file,name:file.name});
+      }
     }
+  }
 
-    setTimeout(() => {
-        progressContainer.style.display = "none";
-        progressBar.style.width = "0%";
-        progressBar.innerHTML = "";
-    }, 1500);
+  let total=imageList.length;
+  let count=0;
+
+  for(let item of imageList){
+    await resizeImage(item.blob,item.name);
+  }
+
+  async function resizeImage(blob,name){
+    return new Promise(resolve=>{
+      const img=new Image();
+      const reader=new FileReader();
+      reader.onload=e=>img.src=e.target.result;
+      reader.readAsDataURL(blob);
+
+      img.onload=function(){
+        let targetW=widthInput?parseInt(widthInput):img.width;
+        let targetH=heightInput?parseInt(heightInput):img.height;
+
+        targetW*=scale;
+        targetH*=scale;
+
+        let ratioW=targetW/img.width;
+        let ratioH=targetH/img.height;
+        let ratio=1;
+
+        if(mode==="fit") ratio=Math.min(ratioW,ratioH);
+        else if(mode==="fill") ratio=Math.max(ratioW,ratioH);
+        else if(mode==="only-larger") ratio=Math.min(1,Math.min(ratioW,ratioH));
+
+        const newWidth=img.width*ratio;
+        const newHeight=img.height*ratio;
+
+        const canvas=document.createElement('canvas');
+        canvas.width=targetW;
+        canvas.height=targetH;
+        const ctx=canvas.getContext('2d');
+
+        if(bg!=="transparent"){ctx.fillStyle=bg;ctx.fillRect(0,0,canvas.width,canvas.height);}
+        const x=(targetW-newWidth)/2;
+        const y=(targetH-newHeight)/2;
+        ctx.drawImage(img,x,y,newWidth,newHeight);
+
+        canvas.toBlob(function(resizedBlob){
+          const extension=format.split('/')[1];
+          const newName="resized_"+name.split('.')[0]+"."+extension;
+
+          if(total===1) saveAs(resizedBlob,newName);
+          else newZip.file(newName,resizedBlob);
+
+          const previewImg=document.createElement('img');
+          previewImg.src=URL.createObjectURL(resizedBlob);
+          preview.appendChild(previewImg);
+
+          count++;
+          const percent=Math.round((count/total)*100);
+          progressBar.style.width=percent+"%";
+          progressBar.innerHTML=percent+"%";
+
+          resolve();
+        },format,quality);
+      };
+    });
+  }
+
+  if(total>1){
+    const content=await newZip.generateAsync({type:"blob"});
+    saveAs(content,"resized_images.zip");
+  }
+
+  setTimeout(()=>{
+    progressContainer.style.display="none";
+    progressBar.style.width="0%";
+    progressBar.innerHTML="0%";
+    resizeBtn.disabled=false;
+  },1500);
 }
 </script>
 
