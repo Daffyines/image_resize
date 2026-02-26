@@ -170,103 +170,166 @@ Drag & Drop ZIP Here<br>or Click to Upload
 </div>
 
 <script>
-let selectedFile;
-const dropZone=document.getElementById('dropZone');
-const fileInput=document.getElementById('zipUpload');
+let selectedFiles = [];
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('zipUpload');
+const preview = document.getElementById('preview');
+const progressBar = document.getElementById('progressBar');
+const progressContainer = document.getElementById('progressContainer');
+const qualitySlider = document.getElementById('quality');
 
-dropZone.onclick=()=>fileInput.click();
-fileInput.onchange=e=>selectedFile=e.target.files[0];
+// Trego % të quality
+const qualityLabel = document.createElement("div");
+qualityLabel.style.fontSize = "13px";
+qualityLabel.style.marginBottom = "10px";
+qualityLabel.innerHTML = "Quality: 80%";
+qualitySlider.parentNode.insertBefore(qualityLabel, qualitySlider.nextSibling);
 
-dropZone.ondragover=e=>{e.preventDefault();};
-dropZone.ondrop=e=>{
-e.preventDefault();
-selectedFile=e.dataTransfer.files[0];
+qualitySlider.addEventListener("input", () => {
+    qualityLabel.innerHTML = "Quality: " + Math.round(qualitySlider.value * 100) + "%";
+});
+
+dropZone.onclick = () => fileInput.click();
+
+fileInput.onchange = (e) => {
+    handleFiles(e.target.files);
 };
 
-function toggleTheme(){
-document.body.classList.toggle('light');
-}
+dropZone.ondragover = (e) => e.preventDefault();
 
-async function processZip(){
-if(!selectedFile){alert("Upload ZIP first.");return;}
-
-const widthInput=document.getElementById('width').value;
-const heightInput=document.getElementById('height').value;
-const keepRatio=document.getElementById('ratio').checked;
-const quality=document.getElementById('quality').value;
-const format=document.getElementById('format').value;
-
-const zip=new JSZip();
-const newZip=new JSZip();
-const preview=document.getElementById('preview');
-preview.innerHTML="";
-
-const progressBar=document.getElementById('progressBar');
-const progressContainer=document.getElementById('progressContainer');
-progressContainer.style.display="block";
-
-const contents=await zip.loadAsync(selectedFile);
-
-let total=0;
-contents.forEach((_,zipEntry)=>{
-if(!zipEntry.dir && /\.(jpg|jpeg|png)$/i.test(zipEntry.name)) total++;
-});
-
-let count=0;
-const promises=[];
-
-contents.forEach((_,zipEntry)=>{
-if(!zipEntry.dir && /\.(jpg|jpeg|png)$/i.test(zipEntry.name)){
-const promise=zipEntry.async("blob").then(blob=>{
-return new Promise(resolve=>{
-const img=new Image();
-const reader=new FileReader();
-reader.onload=e=>img.src=e.target.result;
-reader.readAsDataURL(blob);
-
-img.onload=function(){
-let newWidth=widthInput || img.width;
-let newHeight=heightInput || img.height;
-
-if(keepRatio){
-const ratio=img.width/img.height;
-if(widthInput && !heightInput) newHeight=newWidth/ratio;
-if(!widthInput && heightInput) newWidth=newHeight*ratio;
-}
-
-const canvas=document.createElement('canvas');
-canvas.width=newWidth;
-canvas.height=newHeight;
-const ctx=canvas.getContext('2d');
-ctx.drawImage(img,0,0,newWidth,newHeight);
-
-canvas.toBlob(function(resizedBlob){
-const extension=format.split('/')[1];
-newZip.file("resized_"+zipEntry.name.split('.')[0]+"."+extension,resizedBlob);
-
-const previewImg=document.createElement('img');
-previewImg.src=URL.createObjectURL(resizedBlob);
-preview.appendChild(previewImg);
-
-count++;
-progressBar.style.width=(count/total*100)+"%";
-resolve();
-},format,quality);
+dropZone.ondrop = (e) => {
+    e.preventDefault();
+    handleFiles(e.dataTransfer.files);
 };
-});
-});
-promises.push(promise);
+
+function handleFiles(files) {
+    selectedFiles = [];
+    preview.innerHTML = "";
+
+    for (let file of files) {
+        selectedFiles.push(file);
+    }
 }
-});
 
-await Promise.all(promises);
-const content=await newZip.generateAsync({type:"blob"});
-saveAs(content,"resized_images.zip");
+async function processZip() {
+    if (!selectedFiles.length) {
+        alert("Upload images or ZIP first.");
+        return;
+    }
 
-progressContainer.style.display="none";
-progressBar.style.width="0%";
+    const widthInput = document.getElementById('width').value;
+    const heightInput = document.getElementById('height').value;
+    const keepRatio = document.getElementById('ratio').checked;
+    const quality = qualitySlider.value;
+    const format = document.getElementById('format').value;
+
+    const newZip = new JSZip();
+    progressContainer.style.display = "block";
+
+    let totalImages = 0;
+    let imageBlobs = [];
+
+    // Kontrollo nëse është ZIP
+    if (selectedFiles.length === 1 && selectedFiles[0].name.endsWith(".zip")) {
+        const zip = new JSZip();
+        const contents = await zip.loadAsync(selectedFiles[0]);
+
+        contents.forEach((_, zipEntry) => {
+            if (!zipEntry.dir && /\.(jpg|jpeg|png|webp)$/i.test(zipEntry.name)) {
+                totalImages++;
+                imageBlobs.push(
+                    zipEntry.async("blob").then(blob => ({
+                        blob,
+                        name: zipEntry.name
+                    }))
+                );
+            }
+        });
+
+        imageBlobs = await Promise.all(imageBlobs);
+
+    } else {
+        for (let file of selectedFiles) {
+            if (file.type.startsWith("image/")) {
+                totalImages++;
+                imageBlobs.push({
+                    blob: file,
+                    name: file.name
+                });
+            }
+        }
+    }
+
+    let count = 0;
+
+    for (let item of imageBlobs) {
+        await resizeImage(item.blob, item.name);
+    }
+
+    async function resizeImage(blob, name) {
+        return new Promise(resolve => {
+            const img = new Image();
+            const reader = new FileReader();
+
+            reader.onload = e => img.src = e.target.result;
+            reader.readAsDataURL(blob);
+
+            img.onload = function () {
+
+                let newWidth = widthInput || img.width;
+                let newHeight = heightInput || img.height;
+
+                if (keepRatio) {
+                    const ratio = img.width / img.height;
+                    if (widthInput && !heightInput) newHeight = newWidth / ratio;
+                    if (!widthInput && heightInput) newWidth = newHeight * ratio;
+                }
+
+                const canvas = document.createElement('canvas');
+                canvas.width = newWidth;
+                canvas.height = newHeight;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, newWidth, newHeight);
+
+                canvas.toBlob(function (resizedBlob) {
+
+                    const extension = format.split('/')[1];
+                    const newName = "resized_" + name.split('.')[0] + "." + extension;
+
+                    if (totalImages === 1) {
+                        saveAs(resizedBlob, newName);
+                    } else {
+                        newZip.file(newName, resizedBlob);
+                    }
+
+                    const previewImg = document.createElement('img');
+                    previewImg.src = URL.createObjectURL(resizedBlob);
+                    preview.appendChild(previewImg);
+
+                    count++;
+                    const percent = Math.round((count / totalImages) * 100);
+                    progressBar.style.width = percent + "%";
+                    progressBar.innerHTML = percent + "%";
+
+                    resolve();
+                }, format, quality);
+            };
+        });
+    }
+
+    if (totalImages > 1) {
+        const content = await newZip.generateAsync({ type: "blob" });
+        saveAs(content, "resized_images.zip");
+    }
+
+    setTimeout(() => {
+        progressContainer.style.display = "none";
+        progressBar.style.width = "0%";
+        progressBar.innerHTML = "";
+    }, 1500);
 }
 </script>
 
 </body>
+
 </html>
