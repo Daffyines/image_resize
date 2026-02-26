@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Pro Multi Image Resize Tool</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+<style>
+* { box-sizing: border-box; }
+
+body {
+    margin:0;
+    font-family: 'Segoe UI', sans-serif;
+    background: linear-gradient(135deg,#0f172a,#1e293b);
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    min-height:100vh;
+    color:white;
+    transition:0.3s;
+}
+
+.light {
+    background: #f1f5f9;
+    color:#111;
+}
+
+.card {
+    width:600px;
+    background:#1e293b;
+    padding:35px;
+    border-radius:20px;
+    box-shadow:0 25px 60px rgba(0,0,0,0.4);
+    transition:0.3s;
+}
+
+.light .card { background:white; }
+
+h2 { text-align:center; margin-bottom:25px; }
+
+.drop-zone {
+    border:2px dashed #475569;
+    padding:35px;
+    text-align:center;
+    border-radius:15px;
+    margin-bottom:20px;
+    cursor:pointer;
+    transition:0.3s;
+}
+
+.drop-zone:hover {
+    border-color:#ef4444;
+    background:rgba(239,68,68,0.08);
+}
+
+.row { display:flex; gap:10px; }
+
+input, select {
+    width:100%;
+    padding:12px;
+    border-radius:10px;
+    border:1px solid #475569;
+    background:#0f172a;
+    color:white;
+    outline:none;
+}
+
+.light input, .light select {
+    background:white;
+    color:#111;
+}
+
+button {
+    width:100%;
+    padding:14px;
+    border:none;
+    border-radius:12px;
+    background:#ef4444;
+    color:white;
+    font-weight:600;
+    cursor:pointer;
+    transition:0.3s;
+    margin-top:15px;
+}
+
+button:hover {
+    background:#dc2626;
+    transform:translateY(-2px);
+    box-shadow:0 10px 25px rgba(239,68,68,0.4);
+}
+
+.progress-container {
+    margin-top:20px;
+    height:10px;
+    background:#0f172a;
+    border-radius:10px;
+    overflow:hidden;
+    display:none;
+}
+
+.progress-bar {
+    height:100%;
+    width:0%;
+    background:#ef4444;
+}
+
+.preview {
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    margin-top:15px;
+    max-height:150px;
+    overflow:auto;
+}
+
+.preview img {
+    width:70px;
+    border-radius:8px;
+}
+
+.toggle {
+    text-align:right;
+    font-size:13px;
+    cursor:pointer;
+    margin-bottom:10px;
+    opacity:0.7;
+}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+<div class="toggle" onclick="toggleTheme()">Toggle Dark/Light</div>
+
+<h2>Pro Multi Image Resize Tool</h2>
+
+<div class="drop-zone" id="dropZone">
+Drag & Drop ZIP Here<br>or Click to Upload
+<input type="file" id="zipUpload" accept=".zip" hidden>
+</div>
+
+<div class="row">
+<input type="number" id="width" placeholder="Width (px)">
+<input type="number" id="height" placeholder="Height (px)">
+</div>
+
+<label><input type="checkbox" id="ratio"> Maintain Aspect Ratio</label>
+
+<label>Compression Quality</label>
+<input type="range" id="quality" min="0.1" max="1" step="0.1" value="0.8">
+
+<label>Convert Format</label>
+<select id="format">
+<option value="image/jpeg">JPG</option>
+<option value="image/png">PNG</option>
+<option value="image/webp">WEBP</option>
+</select>
+
+<button onclick="processZip()">Resize & Download ZIP</button>
+
+<div class="progress-container" id="progressContainer">
+<div class="progress-bar" id="progressBar"></div>
+</div>
+
+<div class="preview" id="preview"></div>
+
+</div>
+
+<script>
+let selectedFile;
+const dropZone=document.getElementById('dropZone');
+const fileInput=document.getElementById('zipUpload');
+
+dropZone.onclick=()=>fileInput.click();
+fileInput.onchange=e=>selectedFile=e.target.files[0];
+
+dropZone.ondragover=e=>{e.preventDefault();};
+dropZone.ondrop=e=>{
+e.preventDefault();
+selectedFile=e.dataTransfer.files[0];
+};
+
+function toggleTheme(){
+document.body.classList.toggle('light');
+}
+
+async function processZip(){
+if(!selectedFile){alert("Upload ZIP first.");return;}
+
+const widthInput=document.getElementById('width').value;
+const heightInput=document.getElementById('height').value;
+const keepRatio=document.getElementById('ratio').checked;
+const quality=document.getElementById('quality').value;
+const format=document.getElementById('format').value;
+
+const zip=new JSZip();
+const newZip=new JSZip();
+const preview=document.getElementById('preview');
+preview.innerHTML="";
+
+const progressBar=document.getElementById('progressBar');
+const progressContainer=document.getElementById('progressContainer');
+progressContainer.style.display="block";
+
+const contents=await zip.loadAsync(selectedFile);
+
+let total=0;
+contents.forEach((_,zipEntry)=>{
+if(!zipEntry.dir && /\.(jpg|jpeg|png)$/i.test(zipEntry.name)) total++;
+});
+
+let count=0;
+const promises=[];
+
+contents.forEach((_,zipEntry)=>{
+if(!zipEntry.dir && /\.(jpg|jpeg|png)$/i.test(zipEntry.name)){
+const promise=zipEntry.async("blob").then(blob=>{
+return new Promise(resolve=>{
+const img=new Image();
+const reader=new FileReader();
+reader.onload=e=>img.src=e.target.result;
+reader.readAsDataURL(blob);
+
+img.onload=function(){
+let newWidth=widthInput || img.width;
+let newHeight=heightInput || img.height;
+
+if(keepRatio){
+const ratio=img.width/img.height;
+if(widthInput && !heightInput) newHeight=newWidth/ratio;
+if(!widthInput && heightInput) newWidth=newHeight*ratio;
+}
+
+const canvas=document.createElement('canvas');
+canvas.width=newWidth;
+canvas.height=newHeight;
+const ctx=canvas.getContext('2d');
+ctx.drawImage(img,0,0,newWidth,newHeight);
+
+canvas.toBlob(function(resizedBlob){
+const extension=format.split('/')[1];
+newZip.file("resized_"+zipEntry.name.split('.')[0]+"."+extension,resizedBlob);
+
+const previewImg=document.createElement('img');
+previewImg.src=URL.createObjectURL(resizedBlob);
+preview.appendChild(previewImg);
+
+count++;
+progressBar.style.width=(count/total*100)+"%";
+resolve();
+},format,quality);
+};
+});
+});
+promises.push(promise);
+}
+});
+
+await Promise.all(promises);
+const content=await newZip.generateAsync({type:"blob"});
+saveAs(content,"resized_images.zip");
+
+progressContainer.style.display="none";
+progressBar.style.width="0%";
+}
+</script>
+
+</body>
+</html>
