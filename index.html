@@ -139,7 +139,7 @@ button:hover {
 
 <div class="drop-zone" id="dropZone">
 Drag & Drop ZIP Here<br>or Click to Upload
-<input type="file" id="zipUpload" accept=".zip" hidden>
+<input type="file" id="zipUpload" accept=".zip,image/*" multiple hidden>
 </div>
 
 <div class="row">
@@ -267,55 +267,73 @@ async function processZip() {
     }
 
     async function resizeImage(blob, name) {
-        return new Promise(resolve => {
-            const img = new Image();
-            const reader = new FileReader();
+    return new Promise(resolve => {
 
-            reader.onload = e => img.src = e.target.result;
-            reader.readAsDataURL(blob);
+        const img = new Image();
+        const reader = new FileReader();
 
-            img.onload = function () {
+        reader.onload = e => img.src = e.target.result;
+        reader.readAsDataURL(blob);
 
-                let newWidth = widthInput || img.width;
-                let newHeight = heightInput || img.height;
+        img.onload = function () {
 
-                if (keepRatio) {
-                    const ratio = img.width / img.height;
-                    if (widthInput && !heightInput) newHeight = newWidth / ratio;
-                    if (!widthInput && heightInput) newWidth = newHeight * ratio;
+            const targetWidth = parseInt(widthInput);
+            const targetHeight = parseInt(heightInput);
+
+            let canvasWidth = targetWidth || img.width;
+            let canvasHeight = targetHeight || img.height;
+
+            // Ruaj proporcionin
+            const ratio = Math.min(
+                canvasWidth / img.width,
+                canvasHeight / img.height
+            );
+
+            const newWidth = img.width * ratio;
+            const newHeight = img.height * ratio;
+
+            const canvas = document.createElement('canvas');
+            canvas.width = canvasWidth;
+            canvas.height = canvasHeight;
+
+            const ctx = canvas.getContext('2d');
+
+            // BACKGROUND I BARDHË
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Qendro foton në mes
+            const x = (canvasWidth - newWidth) / 2;
+            const y = (canvasHeight - newHeight) / 2;
+
+            ctx.drawImage(img, x, y, newWidth, newHeight);
+
+            canvas.toBlob(function (resizedBlob) {
+
+                const extension = format.split('/')[1];
+                const newName = "resized_" + name.split('.')[0] + "." + extension;
+
+                if (totalImages === 1) {
+                    saveAs(resizedBlob, newName);
+                } else {
+                    newZip.file(newName, resizedBlob);
                 }
 
-                const canvas = document.createElement('canvas');
-                canvas.width = newWidth;
-                canvas.height = newHeight;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, newWidth, newHeight);
+                const previewImg = document.createElement('img');
+                previewImg.src = URL.createObjectURL(resizedBlob);
+                preview.appendChild(previewImg);
 
-                canvas.toBlob(function (resizedBlob) {
+                count++;
+                const percent = Math.round((count / totalImages) * 100);
+                progressBar.style.width = percent + "%";
+                progressBar.innerHTML = percent + "%";
 
-                    const extension = format.split('/')[1];
-                    const newName = "resized_" + name.split('.')[0] + "." + extension;
+                resolve();
 
-                    if (totalImages === 1) {
-                        saveAs(resizedBlob, newName);
-                    } else {
-                        newZip.file(newName, resizedBlob);
-                    }
-
-                    const previewImg = document.createElement('img');
-                    previewImg.src = URL.createObjectURL(resizedBlob);
-                    preview.appendChild(previewImg);
-
-                    count++;
-                    const percent = Math.round((count / totalImages) * 100);
-                    progressBar.style.width = percent + "%";
-                    progressBar.innerHTML = percent + "%";
-
-                    resolve();
-                }, format, quality);
-            };
-        });
-    }
+            }, format, quality);
+        };
+    });
+}
 
     if (totalImages > 1) {
         const content = await newZip.generateAsync({ type: "blob" });
@@ -331,5 +349,4 @@ async function processZip() {
 </script>
 
 </body>
-
 </html>
